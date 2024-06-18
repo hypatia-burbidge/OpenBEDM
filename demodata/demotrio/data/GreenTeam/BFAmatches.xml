@@ -1,0 +1,47 @@
+<?xml version="1.0" ?><matches>
+<match>
+<dataOwner1>GreenTeam</dataOwner1>
+<dataOwner2>BlueTeam</dataOwner2>
+<accession1>1073361</accession1>
+<accession2>9561617</accession2>
+<title1>Of Delays</title1>
+<title2>Of Delays</title2>
+<similarity>1560.8798703561886</similarity>
+</match>
+<match>
+<dataOwner1>GreenTeam</dataOwner1>
+<dataOwner2>BlueTeam</dataOwner2>
+<accession1>3863457</accession1>
+<accession2>2568806</accession2>
+<title1>Of Masques</title1>
+<title2>Of Masques</title2>
+<similarity>1235.2467365572124</similarity>
+</match>
+<match>
+<dataOwner1>GreenTeam</dataOwner1>
+<dataOwner2>BlueTeam</dataOwner2>
+<accession1>4797098</accession1>
+<accession2>1729816</accession2>
+<title1>Of Expense</title1>
+<title2>Of Expense</title2>
+<similarity>1157.7502312980685</similarity>
+</match>
+<match>
+<dataOwner1>GreenTeam</dataOwner1>
+<dataOwner2>BlueTeam</dataOwner2>
+<accession1>3220848</accession1>
+<accession2>9618380</accession2>
+<title1>Of Adversity</title1>
+<title2>Of Adversity</title2>
+<similarity>965.7015435269501</similarity>
+</match>
+<match>
+<dataOwner1>GreenTeam</dataOwner1>
+<dataOwner2>BlueTeam</dataOwner2>
+<accession1>6806323</accession1>
+<accession2>9577847</accession2>
+<title1>Of Innovations</title1>
+<title2>Of Innovations</title2>
+<similarity>680.0400870900954</similarity>
+</match>
+</matches>

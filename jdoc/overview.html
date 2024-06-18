@@ -1,0 +1,97 @@
+<html>
+<head>
+<title>Overview</title>
+</head>
+<body>
+<p>OpenBEDM is an open source software project that aims to develop and deploy code and infrastructure
+for <em>Blind Encrypted Data Matching</em> or <B>BEDM</B> It is derived from an ealier OSS project. 
+hosted on SourceForge and known as Pygar. <a target="blank" href="./whoIsPygar.html">See here for an explanation of the name Pygar. </a>
+</p>
+<p>  <a name="toc"><B>Table of Contents</B></a> </p><ul>
+  <li>  <a href="#desc">Description</a> 
+  <li>  <a href="#license">Copyrights and License</a> 
+  <li>  <a href="#package">Remarks on Software Packages</a> 
+  <li>  <a href="#variations">Variations in Releases</a> 
+  <li>  <a href="#zones">Design Features for Security</a> 
+  
+</ul>
+<p>  <a name="desc"><B>Description</B></a> </p>
+<p>
+<em>Blind Encrypted Data Matching</em> is a new method for negotiating an
+agreement when both sides are hiding all their information. The
+negotiation is conducted by a blind broker who is unable to read the
+hidden information. In the end, the two parties reach an agreement on
+a contract or the sharing of secret data without revealing any
+unnecessary information from their positions of secrecy. The broker is
+kept in the dark throughout.
+</p><p>
+BEDM is useful in situations were the parties are at great risk. They
+can't trust each other and they can't trust a third party
+negotiator. BEDM uses a middleman, but the middleman never sees
+anything that isn't encrypted. Nevertheless, the middleman/broker can
+identify links between encrypted statements that are made by the
+various parties. If there are linked statements, the parties know that
+they have an opportunity for a mutually-beneficial, highly limited,
+cooperative transaction. The parties can pursue that opportunity
+without revealing any information beyond the matching statements found during the
+encrypted data-matching operation. The middleman never learns what is involved.
+</p>
+<p>  <a name="desc"><B>Copyrights and License</B></a> </p>
+<p>
+The Pygar code is a copyrighted creative work that is made available for use under the Pygar Public License. The code is available under license so that the software community can view the core software algorithms and test, improve and validate the security features. See the
+<a href="ThePygarPublicLicense.txt" target="_blank">Pygar Public License</a>.  
+</p>
+
+<p>  <a name="package"><B>Remarks on the Software Packages</B></a> </p>
+<p>
+The Pygar software system comprises applications for a  match-maker service that
+offers <em>Blind Encrypted Data Matching</em> or <B>BEDM</B> as well as
+applications for the clients of that service. The client applications
+help a client prepare encrypted data
+for matching, designate their match partners, and participate in matching
+sessions with the BEDM match-maker service. All applications are stored in
+packages in the software source directory. </p>
+<p>Software that is shared between applications is also stored in
+packages and these packages are organized by software function.</p>
+<p>Finally, any secure installation of this software must divide the
+software into security zones. The zones are created at the
+installation site by physical separation of computers, network
+firewalls, and other standard provisions. The Pygar software system
+designates packages by software zones but that by itself is merely
+installation information - not an assurance of security.
+To be secure, the software must be 
+segregated by security zone when it is installed. For example, the client software to
+encrypt sensitive information is located in the most secure zone and
+widely separated from the client software that transfers encrypted
+documents to external sites. Packages that communicate over the
+internet should not be installed in the most secure layer and the
+designation of the packages by zone facilitates the implementation of
+this rule.</p>
+<p>All of the packages are documented in the hypertext document that
+you are reading now with ancillary explanation referenced here by
+URL. The primary programming language for the project is Java. </p>
+
+ <p>  <a name="zones"><B>Design Features for Security </B></a> </p>
+ <p>Please see the discussion on the subject
+   pygar.configuration.RestrictedImport RestrictedImport 
+<p>This section provides comments that apply to all the security zone packages and attempt to clarify how they are used together.</p>
+<ul>
+  <li><b>Security Zones</b> Currently, the Zones are not stated anywhere explicitly. Instead,
+  any modules that should be restricted to particular zones are indicated by including them the package named "zoneable". They may also be indicated by the annotation "Restricted Import". This aspect
+  of the code remains under continued development to make it more explicit and consistent. Expect neither attribute 
+  in this early release. 
+   <li><b>Flow of Data Documents</b>
+   <ul>
+  <li>The software within the zones observes the convention that incoming data is pulled towards the more secure zone by a component running in the more secure zone. This conforms to the intuitive notion that the user accounts that run the software components have different priviledges and that the user account for a less secure zone should not be able to directly read or write data to a more secure zone.  
+  <li>When information flows out of the system, a component in the more secure zone pushes it towards the less secure zone. Note that this particular component is highly-suspect. It must be fully verified and certified to ensure that it cannot accidently release unencrypted data.
+     </ul>
+     <li><b>Cloud Computing</b><ul>
+       <li>Additional features may be needed to secure the middleman's server if it uses cloud
+       computing implementations. These features are not included or described in this release.
+      
+       </li> </ul>
+ </ul>
+ </body>
+</html>
+
+

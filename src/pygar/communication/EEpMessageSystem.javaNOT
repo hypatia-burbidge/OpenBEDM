@@ -1,0 +1,269 @@
+/*
+ * To change this license header, choose License Headers in Project Properties.
+ * To change this template file, choose Tools | Templates
+ * and open the template in the editor.
+ */
+
+package pygar.communication;
+
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.jms.Connection;
+import javax.jms.ConnectionFactory;
+import javax.jms.JMSException;
+import javax.jms.MessageConsumer;
+import javax.jms.MessageProducer;
+import javax.jms.ObjectMessage;
+import javax.jms.Queue;
+import javax.jms.Session;
+import javax.naming.Context;
+import javax.naming.InitialContext;
+import pygar.configuration.Profile;
+import pygar.demo0G.BAN;
+
+/**
+ * An implementation of PmessageSystem using Java EE's JMS facilities.
+ * Tested with GlassFish 4.0. 
+ * @author pbaker
+ */
+public class EEpMessageSystem implements PmessageSystemEE {
+    
+    public HashMap<String,Queue> queueTable;
+    public HashMap<String,MessageProducer> producerTable;
+    
+    public ConnectionFactory connectionFactory;
+    public Context jndiContext;
+    public Connection connection;
+    public Session session;
+    public MessageConsumer consumer;
+    
+    private ObjectMessage nextMessage;
+    
+    // The class needs a reference to the profile. Note that the profile contains
+    // a reference to the messaging system - kind of circular. In practice, the
+    // profile is created and then profile.initEE() initializes the part 
+    // refering to EEpMessageSystem.
+    Profile profile;
+    
+
+    public EEpMessageSystem(Profile p) {
+//        connectionFactory = 
+//                (ConnectionFactory) jndiContext.lookup("demo0GConnFactory");
+        profile = p;
+        try {
+            // get naming context
+            jndiContext = new InitialContext();
+            // create table for JMS Queues. A queue is created when it is first needed.
+            queueTable = new HashMap<String, Queue>();
+            // create the queue for this entity
+            String queueName = p.entityAlias + "Queue";
+            Queue ownQueue = (Queue) jndiContext.lookup(queueName);
+            queueTable.put(p.entityAlias, ownQueue);
+
+            // open the other JMS resources
+            ConnectionFactory connectionFactory =
+             (ConnectionFactory) jndiContext.lookup(p.connectionFactoryName);
+                    
+            connection = connectionFactory.createConnection();
+            session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            consumer = session.createConsumer(ownQueue);
+            connection.start();
+            
+        } catch (javax.jms.JMSException e) {
+            Logger.getLogger(EEpMessageSystem.class.getName()).log(Level.SEVERE, null, e);
+        } catch ( javax.naming.NamingException e) {
+            Logger.getLogger(EEpMessageSystem.class.getName()).log(Level.SEVERE, null, e);
+        }
+    }
+
+
+    /** Check whether the named recipient has been allocated a JMS producer. Set
+     * up the producer if it does not exist. If it exists attempt to validate
+     * that it is operational.
+     * @param recipient
+     * @return 
+     */
+    private boolean prepareProducer(String recipient) {
+        MessageProducer producer;
+        if (producerTable.containsKey(recipient)) {
+            producer = producerTable.get(recipient);
+            // check for valid entry - doesn't guarentee it works!
+            return producer != null;
+        } else {
+            try { 
+            // we can assume that the name lacks an entry on queueTable so we start there
+            Queue recipientQueue = (Queue) jndiContext.lookup(recipient + "Queue");
+            queueTable.put(recipient, recipientQueue);
+            producer = session.createProducer(recipientQueue);
+            producerTable.put(recipient, producer);
+            return true;
+            } catch (javax.naming.NamingException e) {
+                Logger.getLogger(EEpMessageSystem.class.getName()).log(Level.SEVERE, null, e);
+            } catch (javax.jms.JMSException e) {
+                Logger.getLogger(EEpMessageSystem.class.getName()).log(Level.SEVERE, null, e);
+            }
+        }
+        return false;
+    }
+    
+    /** Project a Pmessage by copying all of it except the body
+     * 
+     * @param pmsg
+     * @return 
+     */
+    private Pmessage project(Pmessage pmsg) {
+        Pmessage pnew = new Pmessage(pmsg);
+        pnew.setBody(null);
+        return pnew;
+    }
+
+    @Override
+    public PmessageSystem getPmessageSystem(Profile p) {
+        return new EEpMessageSystem(p);
+    }
+    
+    @Override
+    public PmessageSystem getPmessageSystem(String senderId) {
+        throw new UnsupportedOperationException("Not supported by  this implementation.");
+    }
+
+    @Override
+    public void send(Pmessage message) throws MessageSystemException {
+        String recipient = message.getRecipientId();
+        prepareProducer(recipient);
+        MessageProducer producer = producerTable.get(recipient);
+        
+        PmessageJMSv0 jmsMsg = new PmessageJMSv0(message);
+        
+        try {
+            ObjectMessage omsg = session.createObjectMessage(jmsMsg);
+            producer.send(omsg); 
+        } catch (javax.jms.JMSException e) {
+            Logger.getLogger(EEpMessageSystem.class.getName()).log(Level.SEVERE, null, e);
+        }
+    }
+
+    @Override
+    public boolean canSend(Pmessage message) {
+        String recipient = message.getRecipientId();
+        return prepareProducer(recipient);
+    }
+
+    @Override
+    public void send(String sender, String receiver, String event) throws MessageSystemException {
+        Pmessage pmsg = new Pmessage(sender, receiver, event);
+        send(pmsg);
+    }
+
+    @Override
+    public boolean hasNext() {
+        // first see if the next message is in a buffer
+        if (nextMessage != null) {
+            return true;
+        }
+        // so try and get a new message for the buffer
+        try {
+            nextMessage = (ObjectMessage)consumer.receiveNoWait();
+        } catch (JMSException ex) {
+            Logger.getLogger(EEpMessageSystem.class.getName()).log(Level.SEVERE, null, ex);
+            return false;
+        }
+        // test whether we succeeded and return
+        return nextMessage != null;
+        
+    }
+
+    @Override
+    public Pmessage next() throws MessageSystemException {
+        // we an only receive ObjectMessages but will try to return a Pmessage
+        // first get a message
+        
+        if ( ! hasNext()) {
+            try {
+                // don't have one so we will wait until one arrives
+                nextMessage = (ObjectMessage)consumer.receive();
+            } catch (JMSException ex) {
+                Logger.getLogger(EEpMessageSystem.class.getName()).log(Level.SEVERE, null, ex);
+                throw new MessageSystemException();
+            }
+        }
+        ObjectMessage omsg = nextMessage;
+        nextMessage = null;
+        try {
+            PmessageJMSv0 msgJMS = (PmessageJMSv0)omsg.getObject();
+            return convertToPmessage(msgJMS);
+        } catch (JMSException ex) {
+            Logger.getLogger(EEpMessageSystem.class.getName()).log(Level.SEVERE, null, ex);
+            
+        }
+        
+        
+        return null;
+    }
+
+    @Override
+    public void printAgents() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public boolean shutdownNow() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+        
+    public Pmessage convertToPmessage(PmessageJMSv0 msg) throws MessageSystemException {
+        // create the desired object and set the fields of PmessageBase
+        Pmessage pmsg = new Pmessage();
+		pmsg.brokerId = msg.brokerId;
+		pmsg.marketId = msg.marketId;
+		pmsg.sessionId = msg.sessionId;
+		pmsg.senderId = msg.senderId;
+		pmsg.recipientId = msg.recipientId;
+		pmsg.subject = msg.subject;
+        // create the body if we need one
+        int btype = msg.bodyTypeInt;
+        if (btype == PmessageBodyType.EMPTY.ordinal()) {
+            // no body needed
+            return pmsg;
+        } else if (btype == PmessageBodyType.STRING.ordinal()) {
+            Pmessage.PmessageBody pbody = pmsg.new PmessageBody();
+            pbody.setStringBody(msg.text);
+            pmsg.setBody(pbody);
+            return pmsg;
+        } else if (btype == PmessageBodyType.FILE.ordinal()) {
+            Pmessage.PmessageBody pbody = pmsg.new PmessageBody();
+            String fname = profile.dataDirPath + File.separator + 
+                    msg.senderId + File.separator + msg.fileName;
+            pbody.setStringBody(fname);
+            pmsg.setBody(pbody);
+            // now we need to actually copy the file content to the file!
+            try {
+                DataOutputStream out = new DataOutputStream( new FileOutputStream(fname));
+                try {
+                    out.write(msg.fileContent);
+                    out.close();
+                } catch (IOException ex) {
+                    Logger.getLogger(EEpMessageSystem.class.getName()).log(Level.SEVERE, null, ex);
+                    throw  new MessageSystemException();
+                }
+            } catch (FileNotFoundException ex) {
+                Logger.getLogger(EEpMessageSystem.class.getName()).log(Level.SEVERE, null, ex);
+                throw new MessageSystemException();
+            }
+            
+            return pmsg;
+            
+        }
+        
+        return pmsg;
+    }
+
+
+}
